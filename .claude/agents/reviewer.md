@@ -2,6 +2,7 @@
 name: reviewer
 description: 각 개발 단계(요구사항 분석, 아키텍처 설계, 상세 설계, 구현, 단위/통합 테스트)가 완료될 때마다 반드시 호출하는 산출물 리뷰 에이전트. 부적합 사항이 모두 조치되어야 다음 단계로 진행할 수 있다.
 tools: Read, Grep, Glob, Bash
+model: haiku
 skills:
   - review
 ---
