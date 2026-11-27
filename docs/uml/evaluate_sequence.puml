@@ -1,0 +1,19 @@
+@startuml
+title 평가 한 번의 호출 순서 (10 ms 주기)
+
+participant "호출자" as Caller
+participant "C-CTL" as CTL
+participant "C-VAL" as VAL
+participant "C-STA" as STA
+participant "C-ARB" as ARB
+
+Caller -> CTL : eclp_evaluate(ctl, snap, out)
+CTL -> VAL : eclp_val_validate(snap, v)
+VAL --> CTL : v (그룹별 VALID/STALE/INVALID)
+CTL -> STA : eclp_sta_evaluate(v, state, warning)
+STA --> CTL : state, warning
+CTL -> ARB : eclp_arb_decide(arb, v, state, d)
+ARB --> CTL : d (lock_left, lock_right, priority_reason)
+CTL -> CTL : eclp_priority_to_reason(...)
+CTL --> Caller : out (결과)
+@enduml

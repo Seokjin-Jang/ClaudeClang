@@ -79,6 +79,21 @@ pipeline {
                 }
             }
         }
+        stage('System Test') {
+            steps {
+                script { runGate('System Test', 'ci/in-docker.sh ci/test.sh system') }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'reports/system/results.xml'
+                }
+            }
+        }
+        stage('Traceability (Requirement Coverage 100%)') {
+            steps {
+                script { runGate('Traceability', 'ci/in-docker.sh python3 ci/check_traceability.py') }
+            }
+        }
         stage('TDD Test') {
             steps {
                 script { runGate('TDD Test', 'ci/in-docker.sh ci/test.sh tdd') }

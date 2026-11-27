@@ -1,0 +1,11 @@
+@startuml
+title 상태 전이 (A-10, A-18)
+
+[*] --> NORMAL : 기동 (SWR-105)
+NORMAL --> DEGRADED : 필수 입력 STALE 또는 INVALID (SWR-122)
+DEGRADED --> NORMAL : 모든 입력 유효, sensor_fault 없음 (SWR-123)
+NORMAL --> FAULT : sensor_fault TRUE (SWR-124)
+DEGRADED --> FAULT : sensor_fault TRUE (SWR-124)
+FAULT --> NORMAL : sensor_fault FALSE, 입력 유효 (SWR-123)
+FAULT --> DEGRADED : sensor_fault FALSE, 입력 이상 (SWR-122)
+@enduml
