@@ -46,11 +46,23 @@ jobs:
         continue-on-error: true
         run: ci/in-docker.sh ci/static_analysis.sh
 
-      - name: Metrics (Lizard CCN<=10, length<=80 / CLOC)
+      - name: Metrics (Lizard CCN<=10, length<=80 / CLOC comment ratio)
         id: metrics
         if: ${{ !cancelled() }}
         continue-on-error: true
         run: ci/in-docker.sh ci/metrics.sh
+
+      - name: Docs (Doxygen, Human-in-the-Loop tags, UML)
+        id: docs
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: ci/in-docker.sh ci/docs.sh
+
+      - name: SBOM (CycloneDX)
+        id: sbom
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: ci/in-docker.sh ci/sbom.sh
 
       - name: Unit test (success 100%, MC/DC 100%)
         id: unit
@@ -89,6 +101,8 @@ jobs:
             build=${{ steps.build.outcome }}
             static=${{ steps.static.outcome }}
             metrics=${{ steps.metrics.outcome }}
+            docs=${{ steps.docs.outcome }}
+            sbom=${{ steps.sbom.outcome }}
             unit=${{ steps.unit.outcome }}
             integration=${{ steps.integration.outcome }}
             tdd=${{ steps.tdd.outcome }}

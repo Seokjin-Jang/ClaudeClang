@@ -4,6 +4,7 @@ FROM ubuntu:24.04
 
 ARG LLVM_VERSION=22
 ARG PICT_VERSION=v3.7.4
+ARG SYFT_VERSION=v1.57.2
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     HOME=/tmp \
@@ -14,7 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # 문서(Doxygen), 테스트 프레임워크(GoogleTest/GoogleMock)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl gnupg git make cmake ninja-build \
-        cppcheck cloc doxygen graphviz \
+        cppcheck cloc doxygen graphviz plantuml \
         libgtest-dev libgmock-dev \
         python3 python3-venv python3-pip \
     && rm -rf /var/lib/apt/lists/*
@@ -45,6 +46,10 @@ RUN git clone --depth 1 --branch ${PICT_VERSION} https://github.com/microsoft/pi
     && make -C /tmp/pict -j"$(nproc)" \
     && install -m 0755 /tmp/pict/pict /usr/local/bin/pict \
     && rm -rf /tmp/pict
+
+# Syft (SBOM 생성, CycloneDX)
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+        | sh -s -- -b /usr/local/bin ${SYFT_VERSION}
 
 WORKDIR /workspace
 CMD ["bash"]
