@@ -26,6 +26,8 @@ jobs:
           git {
             id('claudeclang-git')
             remote('https://github.com/Seokjin-Jang/ClaudeClang.git')
+            includes('main develop')
+            excludes('')
           }
         }
         orphanedItemStrategy {
@@ -35,7 +37,7 @@ jobs:
         }
         triggers {
           periodicFolderTrigger {
-            interval('5m')
+            interval('1d')
           }
         }
       }

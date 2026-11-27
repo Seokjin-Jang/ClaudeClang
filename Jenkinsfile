@@ -1,5 +1,6 @@
+// 내부 Jenkins: main/develop 을 매일 밤 주기적으로 빌드하고 결과를 플러그인(Warnings NG, Coverage 등)에서 본다.
+// PR 의 필수 CI 는 GitHub Actions(.github/workflows/ci.yml)이며, 검사 내용은 같은 ci/*.sh 스크립트를 공유한다.
 // 개발 빌드와 같은 이미지(claudeclangbuild) 안에서 모든 검사를 수행한다.
-// 품질 기준(CLAUDE.md 2장)을 하나라도 어기면 빌드가 실패하며, PR은 이 빌드를 통과해야 완료할 수 있다.
 // 검사 하나가 실패해도 나머지 검사와 리포트 수집은 계속하고, 마지막 Verdict 단계에서 종합해 실패 처리한다.
 
 import groovy.transform.Field
@@ -18,6 +19,10 @@ def runGate(String name, String cmd) {
 
 pipeline {
     agent any
+    triggers {
+        // 매일 02시대(H: 분산)에 main/develop 만 주기 실행한다. 다른 브랜치는 빈 문자열이라 주기 실행이 없다.
+        cron(env.BRANCH_NAME in ['main', 'develop'] ? 'H 2 * * *' : '')
+    }
     options {
         timestamps()
         timeout(time: 60, unit: 'MINUTES')

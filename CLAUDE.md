@@ -79,8 +79,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 브랜치는 **Gitflow**를 따른다: `main`(릴리스), `develop`(통합), `feature/*`, `release/*`, `hotfix/*`.
   - 현재 저장소에는 `main`만 있다. 첫 이터레이션 전에 `develop`을 만든다.
   - 작업은 `develop`에서 딴 `feature/*` 브랜치에서 하고, `main`/`develop`에 직접 푸시하지 않는다.
-- PR은 CI를 사용하며, **CI를 통과해야만 PR을 완료**한다.
+- PR의 CI는 **GitHub Actions**(`.github/workflows/ci.yml`, 잡 이름 `quality`)이며, **CI를 통과해야만 PR을 완료**한다.
 - CI 통과 조건은 빌드 성공과 함께 **2장의 소스코드 품질 기준 전부**를 만족하는 것이다.
+- 내부 Jenkins는 PR 게이트가 아니라 `main`/`develop`을 **주기적으로 실행**하는 용도다. (5장)
 
 ## 4. 개발 환경
 
@@ -129,6 +130,17 @@ ci/in-docker.sh build/tests/unit/unit_tests --gtest_filter='Suite.Case'   # 단�
 
 ## 5. CI 환경
 
+### GitHub Actions (PR 필수 CI)
+
+- `.github/workflows/ci.yml`: `main`/`develop` 대상 PR, 두 브랜치로의 push, 수동 실행(`workflow_dispatch`)에서 동작한다.
+- `docker/build`로 `claudeclangbuild` 이미지를 빌드해(캐시 사용) 그 안에서 `ci/*.sh`를 실행한다. 개발 환경, Jenkins와 같은 스크립트와 이미지다.
+- 순서: Build -> Cppcheck -> Lizard/CLOC -> 단위 -> 통합 -> TDD 테스트. 한 검사가 실패해도 나머지를 계속 실행하고, 마지막 `Verdict` 스텝에서 하나라도 실패하면 잡을 실패 처리한다.
+- 결과는 Job Summary(`ci/summary.py`)와 `ci-reports` 아티팩트(`reports/`)로 확인한다.
+- PR을 막으려면 GitHub 브랜치 보호에서 `main`, `develop`에 **필수 상태 체크 `quality`** 를 설정해야 한다. (아직 설정하지 않음)
+
+### 내부 Jenkins (주기 실행)
+
+- Jenkins는 `main`, `develop`만 대상으로 **매일 02시대(`H 2 * * *`)에 주기 실행**한다. (`Jenkinsfile`의 `cron` 트리거. 다른 브랜치는 주기 실행 없음)
 - **Jenkins 안정 버전(LTS, `jenkins/jenkins:lts-jdk21`)** 을 현재 PC의 Docker 위에서 실행하며, 포트는 **8080**을 쓴다. (`http://localhost:8080`)
 - 구성 파일: `docker/jenkins/`(Dockerfile, `plugins.txt`, `casc.yaml`), `ci/docker-compose.yml`, 루트 `Jenkinsfile`.
 - 관리자 계정은 `admin`, 비밀번호는 `ci/.env`(git 제외)의 `JENKINS_ADMIN_PASSWORD`다. 없으면 만든다: `JENKINS_ADMIN_PASSWORD=<임의 문자열>`
@@ -139,7 +151,7 @@ docker compose -f ci/docker-compose.yml down            # 중지 (데이터는 j
 ```
 
 - 설치된 주요 플러그인: Pipeline, Git, JUnit, Warnings Next Generation(Cppcheck, Lizard 결과), Coverage(Cobertura), HTML Publisher(LLVM HTML 리포트), Job DSL, Configuration as Code 등. (`docker/jenkins/plugins.txt`)
-- `ClaudeClang` 멀티브랜치 파이프라인 잡이 GitHub 저장소를 5분마다 스캔해 `Jenkinsfile`이 있는 브랜치를 빌드한다.
+- `ClaudeClang` 멀티브랜치 파이프라인 잡이 GitHub 저장소를 하루에 한 번 스캔하며, 브랜치는 `main`, `develop`만 대상으로 한다. 이 두 브랜치에 `Jenkinsfile`이 들어가야 빌드된다.
 - 파이프라인은 호스트 Docker 데몬(`docker.sock`)으로 `claudeclangbuild` 컨테이너를 띄워 개발 환경과 같은 방식으로 빌드/검사한다. 한 검사가 실패해도 나머지를 계속 실행하고, 마지막 `Verdict` 단계에서 하나라도 실패했으면 빌드를 실패 처리한다.
 - 이 Jenkins는 로컬 PC 전용이다. (root 실행, CSP 해제, `docker.sock` 마운트) 외부에 노출하지 않는다.
-- 아직 연결되지 않은 것: GitHub로의 빌드 상태 보고와 브랜치 보호(CI 통과 필수). 로컬 Jenkins는 GitHub webhook을 받을 수 없어 폴링으로 동작한다.
+- 로컬 Jenkins는 GitHub webhook을 받을 수 없고 GitHub에 상태를 보고하지 않는다. 그래서 PR 게이트는 GitHub Actions가 맡는다.
