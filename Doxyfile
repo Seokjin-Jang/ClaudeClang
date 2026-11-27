@@ -26,4 +26,6 @@ ALIASES                = "ai_model=\par AI Model:^^" \
                          "ai_requester=\par AI Requester:^^" \
                          "review_status=\par Review Status:^^" \
                          "reviewer=\par Reviewer:^^" \
-                         "review_date=\par Review Date:^^"
+                         "review_date=\par Review Date:^^" \
+                         "requirement=\par Requirement:^^" \
+                         "module=\par Module:^^"

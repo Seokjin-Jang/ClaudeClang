@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 저장소 현황
 
-아직 제품 소스 코드(`src/`)와 테스트(`tests/`)가 없다. 빌드 이미지, CMake 뼈대, CI 스크립트, Jenkins 구성은 준비되어 있다. (4~5장 참고) 소스가 없는 동안 CI 스크립트는 "건너뜀"으로 통과하지만, `src/`에 소스가 생기면 테스트 실행 파일이 없을 때 실패한다.
+이터레이션 1(안전 코어: OEM-SR-001~004 등)의 분석, 설계, 구현, 테스트가 `feature/iteration-1-safety-core`에 있다. 산출물은 `docs/`(요구사항, 아키텍처, 상세 설계, UML, 추적성, 리뷰 기록), 제품 코드는 `src/`(C17, 컴포넌트 4개), 테스트는 `tests/`에 있다. 빌드 이미지, CI 스크립트, Jenkins 구성은 4~5장을 참고한다. `src/`에 소스가 있는데 테스트 실행 파일이 없으면 CI 스크립트가 실패한다.
+
+문서의 정본: 요구사항 `docs/requirements/`(안전 요구는 `safety-requirements.md`, 가정은 `assumptions.md`), 추적성 `docs/traceability/trace.csv`, 설계 `docs/architecture/architecture.md`, `docs/design/detailed-design.md`. 이터레이션 1은 사용자 지시로 `reviewer` 리뷰를 생략했다. (`docs/reviews/iteration-1-review-record.md`)
 
 - 원격: https://github.com/Seokjin-Jang/ClaudeClang.git
 - 개발은 Windows(`D:\Repo\ClaudeClang`)에서 진행한다.
@@ -115,7 +117,10 @@ docker build -t claudeclangbuild docker/build          # 이미지 빌드 (최�
 ci/in-docker.sh ci/build.sh                            # CMake+Ninja 빌드 (커버리지 계측 포함, build/)
 ci/in-docker.sh ci/test.sh unit                        # 단위 테스트 + MC/DC 100% 검사
 ci/in-docker.sh ci/test.sh integration                 # 통합 테스트 + 함수 커버리지 100% 검사
+ci/in-docker.sh ci/test.sh system                      # 시스템 테스트 (공개 인터페이스만 사용)
 ci/in-docker.sh ci/test.sh tdd                         # TDD 테스트 (별도 결과/커버리지)
+ci/in-docker.sh python3 ci/check_traceability.py       # 추적성 + 시스템 테스트 요구사항 커버리지 100%
+ci/in-docker.sh python3 ci/sync_trace.py --status verified   # 소스/테스트 태그에서 trace.csv의 모듈·시험 열 갱신
 ci/in-docker.sh ci/static_analysis.sh                  # Cppcheck (src/ 지적 0건)
 ci/in-docker.sh ci/metrics.sh                          # Lizard (CCN<=10, 길이<=80) + CLOC 주석률(>=30%)
 ci/in-docker.sh ci/lizard.sh                           # Lizard만 (Hook이 사용)
@@ -125,7 +130,9 @@ ci/in-docker.sh build/tests/unit/unit_tests --gtest_filter='Suite.Case'   # 단�
 ```
 
 - 결과는 `reports/`에 스위트별로 분리되어 저장된다. (`reports/unit/`, `reports/integration/`, `reports/tdd/`: `results.xml`, `cobertura.xml`, `html/` LLVM 리포트 포함)
-- 디렉터리 규약(루트 `CMakeLists.txt`가 자동 포함): `src/`, `tests/unit/`(실행 파일 `unit_tests`), `tests/integration/`(`integration_tests`), `tests/tdd/`(`tdd_tests`). 각 디렉터리에 `CMakeLists.txt`가 있어야 한다.
+- 디렉터리 규약(루트 `CMakeLists.txt`가 자동 포함): `src/`, `tests/unit/`(실행 파일 `unit_tests`), `tests/integration/`(`integration_tests`), `tests/system/`(`system_tests`), `tests/tdd/`(`tdd_tests`). 각 디렉터리에 `CMakeLists.txt`가 있어야 한다. 공용 도우미는 `tests/support/`다.
+- 추적성 태그 규약: 소스 파일 머리말에 `@module M-...`, 함수 주석에 `@requirement SWR-...`를 쓴다. 테스트 주석에는 `@test <ID>`와 `@requirement SWR-...`를 쓰며 ID는 `UT-`/`IT-`/`ST-`로 시작한다. TDD 테스트는 `@tdd <ID>`를 쓰고 추적 대상이 아니다. 새 요구사항이나 테스트를 추가하면 `sync_trace.py`로 `trace.csv`를 갱신하고 `check_traceability.py`가 통과해야 한다.
+- 단위 테스트는 MC/DC와 분기 커버리지를 모두 100%로 요구한다. 판정은 단일 조건 또는 중첩 `if`로 써서 MC/DC 대상이 적으므로 분기 100%를 함께 강제한다.
 - 커버리지 측정은 `src/` 코드만 대상으로 한다. (`tests/`, `build/`, `/usr/` 제외)
 - Cppcheck는 `--enable=all`로 `src/`와 `tests/`를 함께 분석하되(테스트가 호출하는 함수를 미사용으로 오탐하지 않도록), 판정은 `src/` 지적만 센다. severity가 `information`인 도구 진단 메시지(`missingIncludeSystem` 등)는 세지 않으며, 특정 룰을 제외하는 예외는 없다.
 
@@ -133,8 +140,8 @@ ci/in-docker.sh build/tests/unit/unit_tests --gtest_filter='Suite.Case'   # 단�
 - `.claude/settings.json`의 `PostToolUse` Hook(`.claude/hooks/lizard-check.sh`)이 `src/`의 C/C++ 파일을 Write/Edit할 때마다 Lizard를 실행한다. 기준(CCN 10, 함수 80라인)을 넘으면 결과를 돌려주므로 즉시 함수를 분리해서 고친다.
 
 ### 아직 자동화되지 않은 기준
-- 시스템 테스트 요구사항 커버리지 100% 게이트 (요구사항-시험 추적 매트릭스가 생긴 뒤 추가)
-- 테스트 코드의 Doxygen 주석 항목(목적, 입력값, 절차, 예상 출력값) 검사
+- 테스트 코드의 Doxygen 주석 항목(목적, 입력값, 절차, 예상 출력값)과 HITL 태그 검사 (`check_traceability.py`는 `@test`, `@requirement`만 검사한다)
+- 시스템 테스트 요구사항 커버리지(`check_traceability.py`)는 `trace.csv`의 `status`가 `verified`인 기능·품질 요구사항을 대상으로 한다. 새 요구사항은 `planned`로 두고, 구현과 시험을 마친 뒤 `verified`로 올린다.
 
 ## 5. CI 환경
 

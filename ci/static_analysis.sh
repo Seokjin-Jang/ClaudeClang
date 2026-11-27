@@ -15,7 +15,7 @@ else
     INPUTS=(src)
     [ -d tests ] && INPUTS+=(tests)
     cppcheck --enable=all --inconclusive --check-level=exhaustive \
-        --library=googletest -I src \
+        --library=googletest -I src -I tests/support \
         --xml --xml-version=2 "${INPUTS[@]}" 2> "$REPORT_DIR/cppcheck.xml"
     python3 "$(dirname "$0")/check_cppcheck.py" "$REPORT_DIR/cppcheck.xml" || RESULT=1
 fi

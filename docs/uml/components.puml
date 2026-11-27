@@ -1,0 +1,29 @@
+@startuml
+title 컴포넌트와 인터페이스 (SWA-001)
+
+package "전자식 차일드락 SW" {
+  component "C-CTL 제어기" as CTL
+  component "C-VAL 입력 검증기" as VAL
+  component "C-STA 상태 관리기" as STA
+  component "C-ARB 판정기" as ARB
+}
+
+interface "IF-CTL" as ICTL
+interface "IF-VAL" as IVAL
+interface "IF-STA" as ISTA
+interface "IF-ARB" as IARB
+
+CTL - ICTL
+VAL - IVAL
+STA - ISTA
+ARB - IARB
+
+CTL ..> IVAL : 검증
+CTL ..> ISTA : 상태
+CTL ..> IARB : 결정
+
+note bottom of CTL
+  공유 데이터 타입: eclp_types.h (값 구조체만, 함수 없음)
+  의존 방향은 C-CTL -> 나머지 한 방향
+end note
+@enduml

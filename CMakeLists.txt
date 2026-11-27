@@ -22,8 +22,9 @@ enable_testing()
 #   src/               제품 코드
 #   tests/unit/        단위 테스트  -> 실행 파일 unit_tests
 #   tests/integration/ 통합 테스트  -> 실행 파일 integration_tests
+#   tests/system/      시스템 테스트 -> 실행 파일 system_tests (공개 인터페이스만 사용)
 #   tests/tdd/         TDD 테스트   -> 실행 파일 tdd_tests (단위 테스트와 분리)
-foreach(dir src tests/unit tests/integration tests/tdd)
+foreach(dir src tests/unit tests/integration tests/system tests/tdd)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${dir}/CMakeLists.txt")
         add_subdirectory(${dir})
     endif()

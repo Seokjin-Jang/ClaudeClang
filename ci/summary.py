@@ -7,7 +7,8 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
-SUITES = [("unit", "단위 테스트", "mcdc"), ("integration", "통합 테스트", "functions"), ("tdd", "TDD 테스트", None)]
+SUITES = [("unit", "단위 테스트", "mcdc"), ("integration", "통합 테스트", "functions"),
+          ("system", "시스템 테스트", None), ("tdd", "TDD 테스트", None)]
 
 
 def count_tests(path):

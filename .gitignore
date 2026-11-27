@@ -1,3 +1,4 @@
 /build/
 /reports/
 ci/.env
+__pycache__/

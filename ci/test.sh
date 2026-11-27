@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # 테스트 스위트 하나를 실행하고 커버리지를 측정한다. 스위트별 결과/커버리지는 서로 분리된다.
-#   사용법: ci/test.sh <unit|integration|tdd>
-#   unit        : 테스트 성공률 100% + MC/DC 100%
+#   사용법: ci/test.sh <unit|integration|system|tdd>
+#   unit        : 테스트 성공률 100% + MC/DC 100% + 분기 100%
 #   integration : 테스트 성공률 100% + 함수 커버리지 100%
+#   system      : 테스트 성공률 100% (요구사항 커버리지는 ci/check_traceability.py 가 검사)
 #   tdd         : 테스트 성공률 100% (커버리지는 별도로 측정/보고만 하고 기준은 적용하지 않음)
 set -u
 SUITE="${1:-}"
@@ -15,8 +16,9 @@ EXE=""
 case "$SUITE" in
     unit)        EXE="$BUILD_DIR/tests/unit/unit_tests";                METRIC="mcdc" ;;
     integration) EXE="$BUILD_DIR/tests/integration/integration_tests";  METRIC="functions" ;;
+    system)      EXE="$BUILD_DIR/tests/system/system_tests" ;;
     tdd)         EXE="$BUILD_DIR/tests/tdd/tdd_tests" ;;
-    *)           echo "usage: $0 <unit|integration|tdd>" >&2; RESULT=2 ;;
+    *)           echo "usage: $0 <unit|integration|system|tdd>" >&2; RESULT=2 ;;
 esac
 
 if [ "$RESULT" -eq 0 ]; then
@@ -44,6 +46,10 @@ if [ "$RESULT" -eq 0 ]; then
             lcov_cobertura "$OUT/coverage.lcov" -b . -o "$OUT/cobertura.xml" > /dev/null 2>&1 || true
             if [ -n "$METRIC" ]; then
                 python3 "$(dirname "$0")/check_coverage.py" "$OUT/export.json" "$METRIC" 100 || RESULT=1
+            fi
+            if [ "$SUITE" = "unit" ]; then
+                # 단일 조건 판정의 MC/DC는 분기 커버리지와 같으므로 분기 100%도 함께 요구한다.
+                python3 "$(dirname "$0")/check_coverage.py" "$OUT/export.json" branches 100 || RESULT=1
             fi
         else
             echo "[$SUITE] 커버리지 데이터가 생성되지 않았다." >&2
