@@ -1,0 +1,16 @@
+configuration-as-code
+job-dsl
+git
+github
+workflow-aggregator
+workflow-multibranch
+pipeline-stage-view
+credentials-binding
+junit
+warnings-ng
+coverage
+htmlpublisher
+timestamper
+ws-cleanup
+ansicolor
+build-timeout
