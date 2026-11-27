@@ -1,0 +1,17 @@
+services:
+  jenkins:
+    build: ../docker/jenkins
+    image: claudeclang-jenkins
+    container_name: jenkins          # ci/in-docker.sh 가 --volumes-from jenkins 로 참조한다
+    user: root                       # docker.sock 접근용 (로컬 전용 환경)
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD:?ci/.env 에 JENKINS_ADMIN_PASSWORD 를 설정하세요}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  jenkins_home:
