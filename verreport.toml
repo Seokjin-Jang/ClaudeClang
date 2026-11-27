@@ -1,0 +1,45 @@
+# VERReport 설정. Jenkins(Jenkinsfile post)와 로컬이 같은 설정을 쓴다.
+#   ci/in-docker.sh verreport build -c verreport.toml -o reports/verreport
+# 입력은 ci/*.sh 가 만드는 reports/ 이며 판정 기준은 CLAUDE.md 2장, ci/test.sh 와 같다.
+
+[project]
+name = "ClaudeClang"
+source_root = "."
+path_anchors = ["src", "tests"]
+# 테스트는 빌드 이미지(UTC) 안에서 실행되고 GTest 는 시간대 없이 시각을 기록한다.
+test_timezone = "UTC"
+
+[inputs]
+reports_dir = "reports"
+suites = ["unit", "integration", "system", "tdd"]
+
+[thresholds]
+lizard_ccn = 10
+lizard_length = 80
+cppcheck_gate_paths = ["src/"]
+cppcheck_ignore_severities = ["information"]
+
+[thresholds.suites.unit]
+pass_rate = 100.0
+coverage_metric = "mcdc"
+coverage_min = 100.0
+
+[thresholds.suites.integration]
+pass_rate = 100.0
+coverage_metric = "functions"
+coverage_min = 100.0
+
+[thresholds.suites.system]
+pass_rate = 100.0               # 요구사항 커버리지 100% 는 ci/check_traceability.py 가 검사
+
+[thresholds.suites.tdd]
+pass_rate = 100.0               # 커버리지 기준 없음: 보고만 함
+
+# 모듈 = 아키텍처 컴포넌트 (docs/architecture/architecture.md 2장, docs/design/detailed-design.md)
+[modules]
+"src/input_validator" = "C-VAL 입력 검증기"
+"src/state_manager"   = "C-STA 상태 관리기"
+"src/arbiter"         = "C-ARB 판정기"
+"src/controller"      = "C-CTL 제어기"
+"src/result_format"   = "C-CTL 제어기"     # M-CTL-02
+"src/eclp_types.h"    = "공통"             # M-TYP-01 공유 데이터 타입

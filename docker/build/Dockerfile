@@ -5,6 +5,8 @@ FROM ubuntu:24.04
 ARG LLVM_VERSION=22
 ARG PICT_VERSION=v3.7.4
 ARG SYFT_VERSION=v1.57.2
+# VERReport(검증 결과 리포트 생성기). 재현성을 위해 커밋으로 고정한다.
+ARG VERREPORT_REF=5bfa461d7bfdbce223bbf3574dea63aca43613e2
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     HOME=/tmp \
@@ -50,6 +52,9 @@ RUN git clone --depth 1 --branch ${PICT_VERSION} https://github.com/microsoft/pi
 # Syft (SBOM 생성, CycloneDX)
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
         | sh -s -- -b /usr/local/bin ${SYFT_VERSION}
+
+# VERReport: GTest, LLVM 커버리지, Cppcheck, Lizard 결과를 HTML 리포트로 만든다.
+RUN pip install --no-cache-dir "git+https://github.com/Seokjin-Jang/VERReport.git@${VERREPORT_REF}"
 
 WORKDIR /workspace
 CMD ["bash"]

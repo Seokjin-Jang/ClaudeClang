@@ -150,6 +150,18 @@ pipeline {
                     }
                 }
             }
+            // 검증 결과 리포트(VERReport). 생성에 실패해도 빌드 결과는 바꾸지 않는다.
+            script {
+                int rc = sh(returnStatus: true, script: 'ci/in-docker.sh verreport build -c verreport.toml -o reports/verreport --build-id "${BUILD_NUMBER}" --commit "${GIT_COMMIT}"')
+                if (rc != 0) {
+                    echo "VERReport 생성 실패(exit ${rc}). 빌드 결과에는 영향을 주지 않는다."
+                }
+            }
+            publishHTML(target: [
+                reportDir: 'reports/verreport', reportFiles: 'index.html',
+                reportName: 'Verification Report',
+                keepAll: true, allowMissing: true, alwaysLinkToLastBuild: true
+            ])
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true, fingerprint: true
         }
     }
