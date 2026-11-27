@@ -1,0 +1,29 @@
+# Doxygen 설정. 제품 코드(src/)의 주석 규칙을 검사한다. (ci/docs.sh)
+PROJECT_NAME           = "ClaudeClang"
+OUTPUT_DIRECTORY       = reports/doxygen
+INPUT                  = src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.c *.h *.cpp *.hpp
+OPTIMIZE_OUTPUT_FOR_C  = YES
+
+# 문서화되지 않은 함수는 경고로 잡는다. (EXTRACT_ALL=NO 여야 경고가 난다)
+EXTRACT_ALL            = NO
+EXTRACT_STATIC         = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = YES
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+QUIET                  = YES
+
+GENERATE_HTML          = YES
+GENERATE_XML           = YES
+GENERATE_LATEX         = NO
+
+# Human in the Loop 태그 (CLAUDE.md 2장). 결과 XML 의 <title> 은 ci/check_hitl.py 가 검사한다.
+ALIASES                = "ai_model=\par AI Model:^^" \
+                         "ai_date=\par AI Date:^^" \
+                         "ai_requester=\par AI Requester:^^" \
+                         "review_status=\par Review Status:^^" \
+                         "reviewer=\par Reviewer:^^" \
+                         "review_date=\par Review Date:^^"

@@ -9,6 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 원격: https://github.com/Seokjin-Jang/ClaudeClang.git
 - 개발은 Windows(`D:\Repo\ClaudeClang`)에서 진행한다.
 - 프로젝트 스킬은 `.claude/skills/`, 서브에이전트는 `.claude/agents/`에 있다.
+- 개발 대상은 전자식 차일드락 제어 SW다. 입력 사양은 `OEM/OEM-SWR-001_OEM SW 요구사항 사양서.docx`(OEM-A, BL-OEM-1.0)다. 저장소는 public으로 유지하며, 이 문서의 배포는 승인받았다.
+- **언어는 Clang(C/C++)으로 확정**되었다. 사양서 3장의 "Python 3.12 PC/SIL" 실행 환경 기술은 이 결정으로 대체된다. (요구사항 변경)
 
 ## 1. 개발 절차
 
@@ -72,12 +74,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `@ai_*`, `@review_*`는 Doxygen 커스텀 태그이므로 `Doxyfile`의 `ALIASES`에 등록한다.
 - **`@review_status`를 `Done`으로 바꾸는 것은 사용자의 리뷰를 받은 뒤에만 한다.** AI가 임의로 `Done`으로 표시하지 않는다.
-- 주석률은 CLOC으로 측정한다. (기준 수치는 아직 정해지지 않음)
+- 주석률은 CLOC으로 측정하며 `src/` 기준 **30% 이상**(주석 / (주석 + 코드))이어야 한다.
+- `Doxyfile`이 `src/`의 미문서화 함수와 문서 오류를 경고로 잡고(`WARN_AS_ERROR`), `ci/check_hitl.py`가 모든 파일·함수에 `@ai_model`, `@ai_date`, `@ai_requester`, `@review_status`가 있는지 검사한다. (`Done`이면 `@reviewer`, `@review_date`도 필수) 테스트 코드의 주석은 `unit-test`/`integration-test` 스킬 규칙을 따른다.
 
 ## 3. Git 브랜치 및 PR 전략
 
 - 브랜치는 **Gitflow**를 따른다: `main`(릴리스), `develop`(통합), `feature/*`, `release/*`, `hotfix/*`.
-  - 현재 저장소에는 `main`만 있다. 첫 이터레이션 전에 `develop`을 만든다.
   - 작업은 `develop`에서 딴 `feature/*` 브랜치에서 하고, `main`/`develop`에 직접 푸시하지 않는다.
 - PR의 CI는 **GitHub Actions**(`.github/workflows/ci.yml`, 잡 이름 `quality`)이며, **CI를 통과해야만 PR을 완료**한다.
 - CI 통과 조건은 빌드 성공과 함께 **2장의 소스코드 품질 기준 전부**를 만족하는 것이다.
@@ -87,14 +89,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 용도 | 도구 |
 |---|---|
-| 언어 | C/C++, **Clang 18 이상** (최신 버전) |
+| 언어 | **Clang 18 이상**(현재 이미지는 22). 제품 코드 `src/`는 **C17**(안전 코어), 테스트는 C++20 + GoogleTest |
 | 빌드 | **CMake + Ninja** (추천) |
 | 정적 분석 | Cppcheck |
 | 테스트 프레임워크 | Google Test / Google Mock |
 | 커버리지 | LLVM (`llvm-cov`, `llvm-profdata`, MC/DC 포함) |
 | 순환복잡도/함수 길이 | Lizard |
 | 주석률 | CLOC |
-| 문서/주석 검증 (추천) | Doxygen |
+| 문서/주석 검증 | Doxygen (`Doxyfile`, HITL 태그 `ALIASES`) |
+| UML | PlantUML (`docs/uml/*.puml`) |
+| SBOM | Syft (CycloneDX JSON) |
 | 포맷 (추천) | clang-format |
 | 조합 테스트 (스킬에서 사용) | Microsoft PICT |
 
@@ -113,7 +117,10 @@ ci/in-docker.sh ci/test.sh unit                        # 단위 테스트 + MC/D
 ci/in-docker.sh ci/test.sh integration                 # 통합 테스트 + 함수 커버리지 100% 검사
 ci/in-docker.sh ci/test.sh tdd                         # TDD 테스트 (별도 결과/커버리지)
 ci/in-docker.sh ci/static_analysis.sh                  # Cppcheck (src/ 지적 0건)
-ci/in-docker.sh ci/metrics.sh                          # Lizard (CCN<=10, 길이<=80), CLOC
+ci/in-docker.sh ci/metrics.sh                          # Lizard (CCN<=10, 길이<=80) + CLOC 주석률(>=30%)
+ci/in-docker.sh ci/lizard.sh                           # Lizard만 (Hook이 사용)
+ci/in-docker.sh ci/docs.sh                             # Doxygen 경고, HITL 태그, UML 문법 검사
+ci/in-docker.sh ci/sbom.sh                             # SBOM(reports/sbom.cdx.json)
 ci/in-docker.sh build/tests/unit/unit_tests --gtest_filter='Suite.Case'   # 단일 테스트 실행
 ```
 
@@ -122,11 +129,12 @@ ci/in-docker.sh build/tests/unit/unit_tests --gtest_filter='Suite.Case'   # 단�
 - 커버리지 측정은 `src/` 코드만 대상으로 한다. (`tests/`, `build/`, `/usr/` 제외)
 - Cppcheck는 `--enable=all`로 `src/`와 `tests/`를 함께 분석하되(테스트가 호출하는 함수를 미사용으로 오탐하지 않도록), 판정은 `src/` 지적만 센다. severity가 `information`인 도구 진단 메시지(`missingIncludeSystem` 등)는 세지 않으며, 특정 룰을 제외하는 예외는 없다.
 
+### Hook
+- `.claude/settings.json`의 `PostToolUse` Hook(`.claude/hooks/lizard-check.sh`)이 `src/`의 C/C++ 파일을 Write/Edit할 때마다 Lizard를 실행한다. 기준(CCN 10, 함수 80라인)을 넘으면 결과를 돌려주므로 즉시 함수를 분리해서 고친다.
+
 ### 아직 자동화되지 않은 기준
-- 시스템 테스트 요구사항 커버리지 100% 게이트
-- 주석률(CLOC) 기준 수치 (측정만 한다)
-- Lizard Hook (`.claude/settings.json`)
-- Doxygen `Doxyfile`과 `ALIASES`
+- 시스템 테스트 요구사항 커버리지 100% 게이트 (요구사항-시험 추적 매트릭스가 생긴 뒤 추가)
+- 테스트 코드의 Doxygen 주석 항목(목적, 입력값, 절차, 예상 출력값) 검사
 
 ## 5. CI 환경
 

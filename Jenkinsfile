@@ -49,6 +49,16 @@ pipeline {
                 script { runGate('Lizard', 'ci/in-docker.sh ci/metrics.sh') }
             }
         }
+        stage('Docs (Doxygen, HITL, UML)') {
+            steps {
+                script { runGate('Docs', 'ci/in-docker.sh ci/docs.sh') }
+            }
+        }
+        stage('SBOM') {
+            steps {
+                script { runGate('SBOM', 'ci/in-docker.sh ci/sbom.sh') }
+            }
+        }
         stage('Unit Test (MC/DC 100%)') {
             steps {
                 script { runGate('Unit Test', 'ci/in-docker.sh ci/test.sh unit') }
