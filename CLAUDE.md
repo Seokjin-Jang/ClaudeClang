@@ -121,6 +121,7 @@ ci/in-docker.sh ci/test.sh system                      # 시스템 테스트 (�
 ci/in-docker.sh ci/test.sh tdd                         # TDD 테스트 (별도 결과/커버리지)
 ci/in-docker.sh python3 ci/check_traceability.py       # 추적성 + 시스템 테스트 요구사항 커버리지 100%
 ci/in-docker.sh python3 ci/sync_trace.py --status verified   # 소스/테스트 태그에서 trace.csv의 모듈·시험 열 갱신
+ci/in-docker.sh verreport build -c verreport.toml -o reports/verreport   # 검증 결과 HTML 리포트 (VERReport)
 ci/in-docker.sh ci/static_analysis.sh                  # Cppcheck (src/ 지적 0건)
 ci/in-docker.sh ci/metrics.sh                          # Lizard (CCN<=10, 길이<=80) + CLOC 주석률(>=30%)
 ci/in-docker.sh ci/lizard.sh                           # Lizard만 (Hook이 사용)
@@ -168,5 +169,6 @@ docker compose -f ci/docker-compose.yml down            # 중지 (데이터는 j
 - 설치된 주요 플러그인: Pipeline, Git, JUnit, Warnings Next Generation(Cppcheck, Lizard 결과), Coverage(Cobertura), HTML Publisher(LLVM HTML 리포트), Job DSL, Configuration as Code 등. (`docker/jenkins/plugins.txt`)
 - `ClaudeClang` 멀티브랜치 파이프라인 잡이 GitHub 저장소를 하루에 한 번 스캔하며, 브랜치는 `main`, `develop`만 대상으로 한다. 이 두 브랜치에 `Jenkinsfile`이 들어가야 빌드된다.
 - 파이프라인은 호스트 Docker 데몬(`docker.sock`)으로 `claudeclangbuild` 컨테이너를 띄워 개발 환경과 같은 방식으로 빌드/검사한다. 한 검사가 실패해도 나머지를 계속 실행하고, 마지막 `Verdict` 단계에서 하나라도 실패했으면 빌드를 실패 처리한다.
+- 모든 검증이 끝난 뒤 `Jenkinsfile`의 `post`에서 [VERReport](https://github.com/Seokjin-Jang/VERReport)로 `reports/verreport/index.html`을 만들고, HTML Publisher로 빌드 페이지 왼쪽에 **Verification Report** 링크를 건다. 설정은 루트의 `verreport.toml`이며 판정 기준은 2장과 같다. VERReport는 빌드 이미지에 커밋(`VERREPORT_REF`)으로 고정해 설치한다. 리포트 생성이 실패해도 빌드 결과는 바뀌지 않는다.
 - 이 Jenkins는 로컬 PC 전용이다. (root 실행, CSP 해제, `docker.sock` 마운트) 외부에 노출하지 않는다.
 - 로컬 Jenkins는 GitHub webhook을 받을 수 없고 GitHub에 상태를 보고하지 않는다. 그래서 PR 게이트는 GitHub Actions가 맡는다.
