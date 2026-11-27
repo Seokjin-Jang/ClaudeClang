@@ -2,7 +2,9 @@
 // 품질 기준(CLAUDE.md 2장)을 하나라도 어기면 빌드가 실패하며, PR은 이 빌드를 통과해야 완료할 수 있다.
 // 검사 하나가 실패해도 나머지 검사와 리포트 수집은 계속하고, 마지막 Verdict 단계에서 종합해 실패 처리한다.
 
-failedGates = []
+import groovy.transform.Field
+
+@Field List<String> failedGates = []
 
 def runGate(String name, String cmd) {
     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
